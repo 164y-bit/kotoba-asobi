@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>04shiritori</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    font-family: system-ui, sans-serif;
+    text-align: center;
+    padding: 20px;
+  }
+  h1 { margin-bottom: 10px; }
+  #status { font-size: 1.2rem; margin: 15px 0; }
+  #aiWord { font-size: 2rem; margin: 20px 0; font-weight: bold; }
+  .choices {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+  button.choice {
+    font-size: 1.2rem;
+    padding: 15px 20px;
+    cursor: pointer;
+  }
+  #result {
+    margin-top: 20px;
+    font-size: 1.4rem;
+    color: red;
+  }
+  #restartBtn {
+    margin-top: 20px;
+    font-size: 1.2rem;
+    padding: 12px 24px;
+    display: none;
+  }
+
+    .warning {
+  /*display: none;           */   /* 最初は非表示 */
+  margin-top: 15px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #fff3cd;        /* 薄い黄色 */
+  color: #664d03;
+  font-size: 0.95rem;
+}
+</style>
+</head>
+<body>
+
+<h1>ことば遊びAI（しりとり）</h1>
+<div id="settingsPanel">
+
+  <!-- 設定項目 -->
+
+  <div id="audioWarning" class="warning">
+    <strong>⚠ 音声が使用できません</strong><br>
+    この環境では音声を再生できないため、<br>
+    文字のみでゲームを続行します。
+  </div>
+
+</div>
+
+<div id="status">あなたから。選んでください</div>
+<div id="aiWord"></div>
+
+<div class="choices">
+  <button class="choice" onclick="playerSelect(0)"></button>
+  <button class="choice" onclick="playerSelect(1)"></button>
+  <button class="choice" onclick="playerSelect(2)"></button>
+</div>
+
+
+<div id="result"></div>
+<button id="restartBtn" onclick="restartGame()">もう一回</button>
+
+<script src="words.js"></script>
+
+<script>
+  const synth = window.speechSynthesis;
+  const words = WORDS;
+  
+
+
+let usedWords;
+let lastChar;
+let gameOver;
+
+const statusEl = document.getElementById("status");
+const aiWordEl = document.getElementById("aiWord");
+const resultEl = document.getElementById("result");
+const buttons = document.querySelectorAll(".choice");
+const restartBtn = document.getElementById("restartBtn");
+
+function speak(text) {
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "ja-JP";
+  synth.cancel();
+  synth.speak(u);
+}
+
+function randomChoices() {
+  const filtered = words.filter(w => {
+    if (usedWords.includes(w)) return false;
+    if (!lastChar) return true;
+    return w[0] === lastChar;
+  });
+  return filtered.sort(() => 0.5 - Math.random()).slice(0, 3);
+}
+
+function showChoices() {
+  const c = randomChoices();
+  if (c.length === 0) {
+    endGame("言葉が出ません。あなたの負けです");
+    return;
+  }
+  buttons.forEach((b, i) => {
+    b.textContent = c[i] || "―";
+    b.disabled = !c[i];
+  });
+}
+
+function playerSelect(index) {
+  if (gameOver) return;
+
+  const word = buttons[index].textContent;
+  statusEl.textContent = `あなた：${word}`;
+  speak(word);
+
+  if (usedWords.includes(word)) {
+    endGame("同じ言葉を使いました。あなたの負けです");
+    return;
+  }
+
+  if (word.endsWith("ん")) {
+    endGame("「ん」で終わりました。あなたの負けです");
+    return;
+  }
+
+  usedWords.push(word);
+  lastChar = word[word.length - 1];
+
+  setTimeout(aiTurn, 800);
+}
+
+function aiTurn() {
+  const candidates = words.filter(w =>
+    !usedWords.includes(w) && w[0] === lastChar
+  );
+
+  if (candidates.length === 0) {
+    endGame("AIが言葉を出せません。あなたの勝ちです");
+    return;
+  }
+
+  const word = candidates[Math.floor(Math.random() * candidates.length)];
+  aiWordEl.textContent = `AI：${word}`;
+  speak(word);
+
+  if (word.endsWith("ん")) {
+    endGame("AIが「ん」を出しました。あなたの勝ちです");
+    return;
+  }
+
+  usedWords.push(word);
+  lastChar = word[word.length - 1];
+  showChoices();
+}
+
+function endGame(message) {
+  gameOver = true;
+  resultEl.textContent = message;
+  speak(message);
+  buttons.forEach(b => b.disabled = true);
+  restartBtn.style.display = "inline-block";
+}
+
+function restartGame() {
+  usedWords = [];
+  lastChar = null;
+  gameOver = false;
+
+  statusEl.textContent = "あなたから。選んでください";
+  aiWordEl.textContent = "";
+  resultEl.textContent = "";
+  restartBtn.style.display = "none";
+
+  buttons.forEach(b => b.disabled = false);
+  showChoices();
+}
+
+restartGame();
+</script>
+
+</body>
+</html>
