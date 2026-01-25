@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3さい おめでとう！しりとりAI</title>
+    <style>
+        /* 画面全体のバランス調整 */
+        body { 
+            font-family: sans-serif; 
+            text-align: center; 
+            background-color: #FFF0F5; 
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh; /* 画面の高さに合わせる */
+            box-sizing: border-box;
+        }
+        /* タイトルエリア */
+        h1 { color: #FF69B4; font-size: 1.2rem; margin: 10px 0; }
+        #status { font-size: 0.9rem; color: #666; }
+
+        /* じじAIの言葉エリア（中央に大きく） */
+        #aiArea { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        #aiWord { font-size: 3.5rem; font-weight: bold; color: #FF4500; margin: 10px 0; }
+
+        /* お孫さんのボタンエリア（下側に配置） */
+        .choices { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            padding-bottom: 20px;
+            width: 100%;
+            align-items: center;
+        }
+        button.choice {
+            width: 85%; max-width: 300px; padding: 15px;
+            font-size: 1.6rem; border-radius: 50px; border: none;
+            background-color: #FFB6C1; color: white;
+            box-shadow: 0 4px #FF1493; font-weight: bold;
+        }
+
+        /* 設定ボタン（右上に小さく） */
+        #settingsBtn { position: absolute; top: 10px; right: 10px; font-size: 0.8rem; opacity: 0.6; }
+        
+        /* 下部の案内メッセージ */
+        #msg { font-size: 1rem; color: #D2691E; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <button id="settingsBtn">⚙️</button>
+    <h1>おたんじょうび おめでとう！</h1>
+    
+    <div id="aiArea">
+        <div id="status">じじAIの ばん：</div>
+        <div id="aiWord">りんご</div>
+    </div>
+
+    <div id="msg">がめんを タッチしてね！</div>
+    <div class="choices" id="choices">
+        </div>
+
+    <script src="words.js"></script>
+    <script>
+        let voiceEnabled = false;
+
+        // 画面タッチで開始
+        document.body.onclick = () => {
+            if(!voiceEnabled) {
+                voiceEnabled = true;
+                document.getElementById('msg').innerText = "どれに する？";
+                speak("しりとり しよう！");
+                updateGame("りんご");
+            }
+        };
+
+        function updateGame(lastKana) {
+            document.getElementById('aiWord').innerText = lastKana;
+            const container = document.getElementById('choices');
+            container.innerHTML = '';
+            
+            // words.js の関数を呼び出す（ここが動かないとボタンが出ません）
+            if (typeof getChoices === 'function') {
+                const nextWords = getChoices(lastKana);
+                nextWords.forEach(word => {
+                    const btn = document.createElement('button');
+                    btn.className = 'choice';
+                    btn.innerText = word.kana;
+                    btn.onclick = (e) => {
+                        e.stopPropagation(); // 画面クリックイベントを防ぐ
+                        userSelect(word);
+                    };
+                    container.appendChild(btn);
+                });
+            }
+        }
+
+        function userSelect(word) {
+            speak(word.kana);
+            updateGame(word.kana);
+        }
+
+        function speak(text) {
+            if(!voiceEnabled) return;
+            const uttr = new SpeechSynthesisUtterance(text);
+            uttr.lang = 'ja-JP';
+            window.speechSynthesis.speak(uttr);
+        }
+    </script>
+</body>
+</html>
