@@ -6,112 +6,147 @@
     <title>3さい おめでとう！しりとりAI</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        body { 
-            font-family: sans-serif; text-align: center; background-color: #FFF0F5; 
-            margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box;
-        }
-        /* ① エリア固定：上から順番に配置 */
-        #header { height: 10%; color: #FF69B4; font-size: 1.2rem; font-weight: bold; }
-        #aiArea { height: 25%; display: flex; flex-direction: column; justify-content: center; }
-        #status { font-size: 0.9rem; color: #666; }
+        body { font-family: sans-serif; text-align: center; background-color: #FFF0F5; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; overflow: hidden; }
+        #header { height: 8%; color: #FF69B4; font-size: 1rem; font-weight: bold; }
+        
+        /* じじAIエリア */
+        #aiArea { height: 25%; display: flex; flex-direction: column; justify-content: center; position: relative; border: 2px solid transparent; }
         #aiWord { font-size: 3.5rem; font-weight: bold; color: #FF4500; }
         
-        #resultArea { height: 15%; font-size: 1.5rem; color: #D2691E; display: flex; align-items: center; justify-content: center; }
-        
-        #choices { height: 40%; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; }
+        /* きみの選択表示エリア */
+        #userArea { height: 15%; display: flex; flex-direction: column; justify-content: center; position: relative; }
+        #userWord { font-size: 2.2rem; font-weight: bold; color: #4169E1; }
+
+        /* ボタンエリア */
+        #choices { height: 42%; display: flex; flex-direction: column; gap: 8px; align-items: center; justify-content: center; }
         button.choice {
-            width: 85%; max-width: 300px; padding: 15px; font-size: 1.6rem; border-radius: 50px; 
+            width: 85%; max-width: 300px; padding: 12px; font-size: 1.5rem; border-radius: 50px; 
             border: none; background-color: #FFB6C1; color: white; box-shadow: 0 4px #FF1493; font-weight: bold;
         }
-        button.choice:disabled { background-color: #ccc; box-shadow: none; opacity: 0.5; }
+        button.choice:disabled { background-color: #d3d3d3; color: #888; box-shadow: none; }
 
-        #msgArea { height: 10%; font-size: 1rem; color: #555; }
+        /* 勝者エリアに出す「もう一回」ボタン */
+        .retry-btn { padding: 10px 20px; font-size: 1.2rem; background: #FFD700; border-radius: 10px; border: none; font-weight: bold; margin-top: 5px; cursor: pointer; }
 
-        /* QRコード（右下に配置） */
-        #qrcode { position: absolute; bottom: 10px; right: 10px; background: white; padding: 5px; border-radius: 5px; }
-        #qrcode img { width: 60px; height: 60px; }
-
-        /* 終了画面のオーバーレイ */
-        #overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.9); flex-direction: column; align-items: center; justify-content: center;
-            z-index: 100;
-        }
+        #msgArea { height: 10%; font-size: 1.1rem; color: #D2691E; font-weight: bold; }
+        #qrcode { position: absolute; bottom: 5px; right: 5px; background: white; padding: 3px; border-radius: 5px; }
+        #qrcode img { width: 45px; height: 45px; }
     </style>
 </head>
 <body>
     <div id="header">おたんじょうび おめでとう！</div>
     
     <div id="aiArea">
-        <div id="status">じじAIの ばん：</div>
-        <div id="aiWord">りんご</div>
+        <div id="aiWord">？？？</div>
+        <div id="aiRetry"></div>
     </div>
 
-    <div id="resultArea"><span id="userWord"></span></div>
+    <div id="userArea">
+        <div id="userWord"></div>
+        <div id="userRetry"></div>
+    </div>
 
     <div id="choices"></div>
-
     <div id="msgArea" id="msg">画面をタッチしてね</div>
-
     <div id="qrcode"></div>
-
-    <div id="overlay">
-        <h2 id="endMsg"></h2>
-        <button class="choice" onclick="location.reload()">もういっかい！</button>
-    </div>
 
     <script src="words.js"></script>
     <script>
         let voiceEnabled = false;
-        // QRコード生成
-        new QRCode(document.getElementById("qrcode"), window.location.href);
+        let usedWords = []; // 使った単語を記録
+
+        new QRCode(document.getElementById("qrcode"), { text: window.location.href, width: 45, height: 45 });
 
         document.body.onclick = () => {
             if(!voiceEnabled) {
                 voiceEnabled = true;
-                speak("しりとり しよう！");
-                updateGame("りんご");
+                startGame();
             }
         };
 
-        function updateGame(lastKana) {
-            document.getElementById('aiWord').innerText = lastKana;
+        function startGame() {
+            usedWords = [];
+            document.getElementById('userWord').innerText = "";
+            document.getElementById('aiRetry').innerHTML = "";
+            document.getElementById('userRetry').innerHTML = "";
+            // 最初はじじAIがランダムに選ぶ（ただし「ん」以外）
+            const startCandidates = wordsData.filter(w => !w.kana.endsWith("ん"));
+            const first = startCandidates[Math.floor(Math.random() * startCandidates.length)];
+            aiTurn(first);
+        }
+
+        function aiTurn(word) {
+            usedWords.push(word.kana);
+            document.getElementById('aiWord').innerText = word.kana;
+            document.getElementById('msgArea').innerText = "きみの ばん：どれに する？";
+            speak(word.kana);
+            showUserChoices(word.kana);
+        }
+
+        function showUserChoices(lastKana) {
             const container = document.getElementById('choices');
             container.innerHTML = '';
+            const lastChar = lastKana.slice(-1);
             
-            const nextWords = getChoices(lastKana);
-            
-            if (nextWords.length === 0) {
-                endGame("カードがなくなっちゃった！");
+            // 次に繋がる単語（まだ使っていないもの）
+            let matches = wordsData.filter(w => w.kana.startsWith(lastChar) && !usedWords.includes(w.kana));
+
+            if (matches.length === 0) {
+                endGame("「カード」なくなっちゃった。", "ai"); // AIの勝ち
                 return;
             }
 
-            nextWords.forEach(word => {
+            // 3つの枠を埋めるロジック
+            for (let i = 0; i < 3; i++) {
                 const btn = document.createElement('button');
                 btn.className = 'choice';
-                btn.innerText = word.kana;
-                btn.onclick = (e) => { e.stopPropagation(); userSelect(word); };
+                if (matches[i]) {
+                    btn.innerText = matches[i].kana;
+                    btn.onclick = (e) => { e.stopPropagation(); userTurn(matches[i]); };
+                } else {
+                    btn.innerText = "うりきれ";
+                    btn.disabled = true;
+                }
                 container.appendChild(btn);
-            });
+            }
         }
 
-        function userSelect(word) {
-            document.getElementById('userWord').innerText = "きみ： " + word.kana;
+        function userTurn(word) {
+            usedWords.push(word.kana);
+            document.getElementById('userWord').innerText = word.kana;
             speak(word.kana);
 
-            // ② 「ん」判定ルール
+            // 「ん」判定
             if (word.kana.endsWith("ん")) {
-                setTimeout(() => endGame("「ん」がついたよ！じじの勝ち！"), 1000);
+                setTimeout(() => endGame("「ん」がついたよ。", "ai"), 800);
                 return;
             }
 
-            setTimeout(() => updateGame(word.kana), 800);
+            // 次のAIの番
+            setTimeout(() => {
+                const nextChar = word.kana.slice(-1);
+                let aiMatches = wordsData.filter(w => w.kana.startsWith(nextChar) && !usedWords.includes(w.kana));
+                
+                if (aiMatches.length === 0) {
+                    endGame("じじの まけ！", "user");
+                    return;
+                }
+
+                // AIはなるべく「ん」で終わらない単語を優先して選ぶ
+                let smartChoice = aiMatches.find(w => !w.kana.endsWith("ん")) || aiMatches[0];
+                aiTurn(smartChoice);
+            }, 1000);
         }
 
-        function endGame(text) {
+        function endGame(text, winner) {
+            document.getElementById('msgArea').innerText = text;
             speak(text);
-            document.getElementById('endMsg').innerText = text;
-            document.getElementById('overlay').style.display = 'flex';
+            const retryBtn = `<button class="retry-btn" onclick="location.reload()">もういっかい！</button>`;
+            if (winner === "ai") {
+                document.getElementById('aiRetry').innerHTML = retryBtn;
+            } else {
+                document.getElementById('userRetry').innerHTML = retryBtn;
+            }
         }
 
         function speak(text) {
