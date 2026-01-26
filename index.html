@@ -3,54 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>しりとりAI</title>
+    <title>かいとくん おめでとう！</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         body { font-family: sans-serif; text-align: center; background-color: #FFF0F5; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; overflow: hidden; }
         #header { height: 8%; color: #FF69B4; font-size: 1rem; font-weight: bold; }
-        
-        /* じじAIエリア */
-        #aiArea { height: 25%; display: flex; flex-direction: column; justify-content: center; position: relative; }
-        #aiLabel { font-size: 1rem; color: #666; margin-bottom: 5px; }
-        #aiWord { font-size: 3.5rem; font-weight: bold; color: #FF4500; }
-        
-        /* きみの選択表示エリア */
-        #userArea { height: 15%; display: flex; flex-direction: column; justify-content: center; position: relative; }
-        #userWord { font-size: 2.2rem; font-weight: bold; color: #4169E1; }
-
-        /* ボタンエリア */
-        #choices { height: 42%; display: flex; flex-direction: column; gap: 8px; align-items: center; justify-content: center; }
+        #aiArea { height: 35%; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        #aiWord { font-size: 3.5rem; font-weight: bold; color: #FF4500; margin: 5px 0; }
+        #aiImage { height: 120px; display: none; margin-bottom: 10px; border-radius: 10px; }
+        #userArea { height: 12%; font-size: 2rem; font-weight: bold; color: #4169E1; }
+        #choices { height: 35%; display: flex; flex-direction: column; gap: 8px; align-items: center; justify-content: center; }
         button.choice {
             width: 85%; max-width: 300px; padding: 12px; font-size: 1.5rem; border-radius: 50px; 
             border: none; background-color: #FFB6C1; color: white; box-shadow: 0 4px #FF1493; font-weight: bold;
         }
         button.choice:disabled { background-color: #d3d3d3; color: #888; box-shadow: none; }
-
-        /* 勝者エリア用ボタン */
         .retry-btn { padding: 15px 30px; font-size: 1.5rem; background: #FFD700; border-radius: 15px; border: none; font-weight: bold; box-shadow: 0 4px #DAA520; }
-
         #msgArea { height: 10%; font-size: 1.1rem; color: #D2691E; font-weight: bold; }
         #qrcode { position: absolute; bottom: 5px; right: 5px; background: white; padding: 3px; border-radius: 5px; }
         #qrcode img { width: 45px; height: 45px; }
     </style>
 </head>
 <body>
-    <div id="header">おたんじょうび おめでとう！</div>
-    
+    <div id="header">凱士くん 3さい おめでとう！</div>
     <div id="aiArea">
-        <div id="aiLabel">じじAI</div>
-        <div id="aiContent">
-            <div id="aiWord">？？？</div>
-        </div>
+        <div id="aiLabel" style="font-size:0.9rem;color:#666;">じじAI</div>
+        <img id="aiImage" src="" alt="word image">
+        <div id="aiWord">？？？</div>
+        <div id="aiRetry"></div>
     </div>
-
-    <div id="userArea">
-        <div id="userLabel"></div>
-        <div id="userContent">
-            <div id="userWord"></div>
-        </div>
-    </div>
-
+    <div id="userArea"><div id="userWord"></div><div id="userRetry"></div></div>
     <div id="choices"></div>
     <div id="msgArea">がめんを タッチしてね</div>
     <div id="qrcode"></div>
@@ -59,31 +41,32 @@
     <script>
         let voiceEnabled = false;
         let usedWords = [];
-
         new QRCode(document.getElementById("qrcode"), { text: window.location.href, width: 45, height: 45 });
 
         document.body.onclick = () => {
             if(!voiceEnabled) {
                 voiceEnabled = true;
+                speak("かいとくん、お誕生日おめでとう！しりとりしよう！");
                 startGame();
             }
         };
 
         function startGame() {
             usedWords = [];
-            document.getElementById('aiContent').innerHTML = '<div id="aiWord">？？？</div>';
-            document.getElementById('userContent').innerHTML = '<div id="userWord"></div>';
-            
-            // 初手のランダム性を高める（「ん」以外から完全にランダム）
+            document.getElementById('aiRetry').innerHTML = "";
+            document.getElementById('userRetry').innerHTML = "";
+            document.getElementById('userWord').innerText = "";
             const startCandidates = wordsData.filter(w => !w.kana.endsWith("ん"));
-            const first = startCandidates[Math.floor(Math.random() * startCandidates.length)];
-            aiTurn(first);
+            aiTurn(startCandidates[Math.floor(Math.random() * startCandidates.length)]);
         }
 
         function aiTurn(word) {
             usedWords.push(word.kana);
-            document.getElementById('aiWord').innerText = word.kana;
-            document.getElementById('msgArea').innerText = "どれにする？";
+            const wordEl = document.getElementById('aiWord');
+            const imgEl = document.getElementById('aiImage');
+            wordEl.innerText = word.kana;
+            if(word.img) { imgEl.src = word.img; imgEl.style.display = 'block'; } 
+            else { imgEl.style.display = 'none'; }
             speak(word.kana);
             showUserChoices(word.kana);
         }
@@ -92,98 +75,56 @@
             const container = document.getElementById('choices');
             container.innerHTML = '';
             const lastChar = lastKana.slice(-1);
-            
-            // ① 未使用の「繋がる単語」をすべて抽出
-            let allCorrect = wordsData.filter(w => w.kana.startsWith(lastChar) && !usedWords.includes(w.kana));
-            // ② 繋がらない単語
-            let allIncorrect = wordsData.filter(w => !w.kana.startsWith(lastChar) && !usedWords.includes(w.kana));
+            let available = wordsData.filter(w => !usedWords.includes(w.kana));
+            let correct = available.filter(w => w.kana.startsWith(lastChar));
+            let incorrect = available.filter(w => !w.kana.startsWith(lastChar));
 
-            if (allCorrect.length === 0) {
-                endGame("「カード」なくなっちゃった。", "ai");
-                return;
-            }
+            if (correct.length === 0) { endGame("「カード」なくなっちゃった。", "ai"); return; }
 
-            // 【知育ロジック：正解を最大3つ出す】
-            // 正解リストをシャッフル
-            allCorrect.sort(() => Math.random() - 0.5);
-            
+            correct.sort(() => Math.random() - 0.5);
+            incorrect.sort(() => Math.random() - 0.5);
+
             let displayWords = [];
-            // 正解を1〜2個（あれば）入れる
-            displayWords.push(allCorrect.shift()); 
-            if (allCorrect.length > 0) displayWords.push(allCorrect.shift());
+            let seen = new Set();
+            // 重複排除して正解を最大2つ
+            for(let w of correct) { if(displayWords.length < 2 && !seen.has(w.kana)) { displayWords.push(w); seen.add(w.kana); } }
+            // 残りを不正解で埋める
+            for(let w of incorrect) { if(displayWords.length < 3 && !seen.has(w.kana)) { displayWords.push(w); seen.add(w.kana); } }
 
-            // 残りの枠を不正解で埋める（3つになるまで）
-            while (displayWords.length < 3 && allIncorrect.length > 0) {
-                displayWords.push(allIncorrect.splice(Math.floor(Math.random() * allIncorrect.length), 1)[0]);
-            }
-            
-            // 最終的にシャッフルしてボタン作成
             displayWords.sort(() => Math.random() - 0.5).forEach(word => {
                 const btn = document.createElement('button');
                 btn.className = 'choice';
                 btn.innerText = word.kana;
-                btn.onclick = (e) => { e.stopPropagation(); userTurn(word, lastChar); };
+                btn.onclick = (e) => { e.stopPropagation(); userSelect(word, lastChar); };
                 container.appendChild(btn);
             });
-
-            // 枠が余れば「うりきれ」
             while(container.children.length < 3) {
-                const btn = document.createElement('button');
-                btn.className = 'choice';
-                btn.innerText = "うりきれ";
-                btn.disabled = true;
-                container.appendChild(btn);
+                const b = document.createElement('button'); b.className = 'choice'; b.innerText = "うりきれ"; b.disabled = true; container.appendChild(b);
             }
         }
 
-        function userTurn(word, lastChar) {
-            // ルールチェック：間違った単語を選んだ場合
-            if (!word.kana.startsWith(lastChar)) {
-                speak("あれ？ちがうよ！");
-                document.getElementById('msgArea').innerText = "ちがうのを えらんじゃった！";
-                return; 
-            }
-
+        function userSelect(word, lastChar) {
+            if(!word.kana.startsWith(lastChar)) { speak("あれ？ちがうよ！"); return; }
             usedWords.push(word.kana);
             document.getElementById('userWord').innerText = word.kana;
             speak(word.kana);
-
-            if (word.kana.endsWith("ん")) {
-                setTimeout(() => endGame("「ん」がついたよ。", "ai"), 800);
-                return;
-            }
-
+            if(word.kana.endsWith("ん")) { setTimeout(() => endGame("「ん」がついたよ。", "ai"), 800); return; }
             setTimeout(() => {
-                const nextChar = word.kana.slice(-1);
-                let aiMatches = wordsData.filter(w => w.kana.startsWith(nextChar) && !usedWords.includes(w.kana));
-                
-                if (aiMatches.length === 0) {
-                    endGame("じじの まけ！", "user");
-                    return;
-                }
-                let smartChoice = aiMatches.find(w => !w.kana.endsWith("ん")) || aiMatches[0];
-                aiTurn(smartChoice);
+                let aiMatches = wordsData.filter(w => w.kana.startsWith(word.kana.slice(-1)) && !usedWords.includes(w.kana));
+                if(aiMatches.length === 0) { endGame("じじの まけ！", "user"); return; }
+                aiTurn(aiMatches.find(w => !w.kana.endsWith("ん")) || aiMatches[0]);
             }, 1000);
         }
 
         function endGame(text, winner) {
-            document.getElementById('msgArea').innerText = text;
-            speak(text);
-            const retryBtn = `<button class="retry-btn" onclick="startGame()">もういっかい！</button>`;
-            if (winner === "ai") {
-                document.getElementById('aiContent').innerHTML = retryBtn;
-            } else {
-                document.getElementById('userContent').innerHTML = retryBtn;
-            }
-            document.getElementById('choices').innerHTML = ''; // ボタンを消す
+            document.getElementById('msgArea').innerText = text; speak(text);
+            const btn = `<button class="retry-btn" onclick="startGame()">もういっかい！</button>`;
+            if(winner === "ai") { document.getElementById('aiWord').innerText = ""; document.getElementById('aiImage').style.display='none'; document.getElementById('aiRetry').innerHTML = btn; }
+            else { document.getElementById('userWord').innerText = ""; document.getElementById('userRetry').innerHTML = btn; }
+            document.getElementById('choices').innerHTML = '';
         }
 
-        function speak(text) {
-            if(!voiceEnabled) return;
-            const uttr = new SpeechSynthesisUtterance(text);
-            uttr.lang = 'ja-JP';
-            window.speechSynthesis.speak(uttr);
-        }
+        function speak(text) { if(!voiceEnabled) return; const u = new SpeechSynthesisUtterance(text); u.lang = 'ja-JP'; window.speechSynthesis.speak(u); }
     </script>
 </body>
 </html>
