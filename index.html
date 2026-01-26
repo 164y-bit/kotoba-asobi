@@ -93,29 +93,31 @@
             container.innerHTML = '';
             const lastChar = lastKana.slice(-1);
             
-            // 正解候補（繋がるもの）と、不正解候補（繋がらないもの）に分ける
-            let correctMatches = wordsData.filter(w => w.kana.startsWith(lastChar) && !usedWords.includes(w.kana));
-            let incorrectMatches = wordsData.filter(w => !w.kana.startsWith(lastChar) && !usedWords.includes(w.kana));
+            // ① 未使用の「繋がる単語」をすべて抽出
+            let allCorrect = wordsData.filter(w => w.kana.startsWith(lastChar) && !usedWords.includes(w.kana));
+            // ② 繋がらない単語
+            let allIncorrect = wordsData.filter(w => !w.kana.startsWith(lastChar) && !usedWords.includes(w.kana));
 
-            if (correctMatches.length === 0) {
+            if (allCorrect.length === 0) {
                 endGame("「カード」なくなっちゃった。", "ai");
                 return;
             }
 
-            // 知育ロジック：正解を1つ、不正解を2つ選ぶ（不正解が足りなければ正解を出す）
-            let displayWords = [];
-            displayWords.push(correctMatches.shift()); // 正解を1つ入れる
+            // 【知育ロジック：正解を最大3つ出す】
+            // 正解リストをシャッフル
+            allCorrect.sort(() => Math.random() - 0.5);
             
-            // 残り2枠を埋める
-            for(let i=0; i<2; i++) {
-                if(incorrectMatches.length > 0) {
-                    displayWords.push(incorrectMatches.splice(Math.floor(Math.random()*incorrectMatches.length), 1)[0]);
-                } else if(correctMatches.length > 0) {
-                    displayWords.push(correctMatches.shift());
-                }
+            let displayWords = [];
+            // 正解を1〜2個（あれば）入れる
+            displayWords.push(allCorrect.shift()); 
+            if (allCorrect.length > 0) displayWords.push(allCorrect.shift());
+
+            // 残りの枠を不正解で埋める（3つになるまで）
+            while (displayWords.length < 3 && allIncorrect.length > 0) {
+                displayWords.push(allIncorrect.splice(Math.floor(Math.random() * allIncorrect.length), 1)[0]);
             }
             
-            // ボタンをシャッフルして表示
+            // 最終的にシャッフルしてボタン作成
             displayWords.sort(() => Math.random() - 0.5).forEach(word => {
                 const btn = document.createElement('button');
                 btn.className = 'choice';
@@ -123,8 +125,8 @@
                 btn.onclick = (e) => { e.stopPropagation(); userTurn(word, lastChar); };
                 container.appendChild(btn);
             });
-            
-            // 3枠に満たない場合は「うりきれ」を出す
+
+            // 枠が余れば「うりきれ」
             while(container.children.length < 3) {
                 const btn = document.createElement('button');
                 btn.className = 'choice';
