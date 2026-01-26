@@ -7,46 +7,50 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         body { font-family: sans-serif; text-align: center; background-color: #FFF0F5; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; overflow: hidden; }
-        #header { height: 8%; color: #FF69B4; font-size: 1rem; font-weight: bold; }
-        #aiArea { height: 35%; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        #header { height: 8%; color: #FF69B4; font-size: 1.2rem; font-weight: bold; }
+        #aiArea { height: 35%; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 2px dashed #FFB6C1; border-radius: 15px; margin-bottom: 5px; background: white; }
         #aiWord { font-size: 3.5rem; font-weight: bold; color: #FF4500; margin: 5px 0; }
-        #aiImage { height: 120px; display: none; margin-bottom: 10px; border-radius: 10px; }
-        #userArea { height: 12%; font-size: 2rem; font-weight: bold; color: #4169E1; }
+        #aiImage { max-height: 100px; max-width: 80%; display: none; margin-bottom: 5px; border-radius: 10px; }
+        #userArea { height: 10%; font-size: 2rem; font-weight: bold; color: #4169E1; }
         #choices { height: 35%; display: flex; flex-direction: column; gap: 8px; align-items: center; justify-content: center; }
         button.choice {
             width: 85%; max-width: 300px; padding: 12px; font-size: 1.5rem; border-radius: 50px; 
             border: none; background-color: #FFB6C1; color: white; box-shadow: 0 4px #FF1493; font-weight: bold;
         }
         button.choice:disabled { background-color: #d3d3d3; color: #888; box-shadow: none; }
-        .retry-btn { padding: 15px 30px; font-size: 1.5rem; background: #FFD700; border-radius: 15px; border: none; font-weight: bold; box-shadow: 0 4px #DAA520; }
-        #msgArea { height: 10%; font-size: 1.1rem; color: #D2691E; font-weight: bold; }
+        .retry-btn { padding: 15px 30px; font-size: 1.5rem; background: #FFD700; border-radius: 15px; border: none; font-weight: bold; box-shadow: 0 4px #DAA520; margin-top: 10px; }
+        #msgArea { height: 7%; font-size: 1rem; color: #D2691E; font-weight: bold; }
         #qrcode { position: absolute; bottom: 5px; right: 5px; background: white; padding: 3px; border-radius: 5px; }
         #qrcode img { width: 45px; height: 45px; }
     </style>
 </head>
 <body>
-    <div id="header">凱士くん 3さい おめでとう！</div>
+    <div id="header">かいとくん 3さい おめでとう！</div>
     <div id="aiArea">
-        <div id="aiLabel" style="font-size:0.9rem;color:#666;">じじAI</div>
-        <img id="aiImage" src="" alt="word image">
-        <div id="aiWord">？？？</div>
+        <div style="font-size:0.8rem;color:#999;">じじAI</div>
+        <img id="aiImage" src="" alt="">
+        <div id="aiWord">タッチしてね</div>
         <div id="aiRetry"></div>
     </div>
     <div id="userArea"><div id="userWord"></div><div id="userRetry"></div></div>
     <div id="choices"></div>
-    <div id="msgArea">がめんを タッチしてね</div>
+    <div id="msgArea">がめんを おして スタート！</div>
     <div id="qrcode"></div>
 
     <script src="words.js"></script>
     <script>
         let voiceEnabled = false;
         let usedWords = [];
-        new QRCode(document.getElementById("qrcode"), { text: window.location.href, width: 45, height: 45 });
+
+        // QRコード生成（エラー回避のためtry-catch）
+        try {
+            new QRCode(document.getElementById("qrcode"), { text: window.location.href, width: 45, height: 45 });
+        } catch(e) { console.log("QR error"); }
 
         document.body.onclick = () => {
             if(!voiceEnabled) {
                 voiceEnabled = true;
-                speak("かいとくん、お誕生日おめでとう！しりとりしよう！");
+                speak("かいとくん、おたんじょうびおめでとう！");
                 startGame();
             }
         };
@@ -56,8 +60,15 @@
             document.getElementById('aiRetry').innerHTML = "";
             document.getElementById('userRetry').innerHTML = "";
             document.getElementById('userWord').innerText = "";
-            const startCandidates = wordsData.filter(w => !w.kana.endsWith("ん"));
-            aiTurn(startCandidates[Math.floor(Math.random() * startCandidates.length)]);
+            document.getElementById('msgArea').innerText = "どれにする？";
+            
+            // 最初はじじAIがランダムに選ぶ
+            if (typeof wordsData !== 'undefined' && wordsData.length > 0) {
+                const startCandidates = wordsData.filter(w => !w.kana.endsWith("ん"));
+                aiTurn(startCandidates[Math.floor(Math.random() * startCandidates.length)]);
+            } else {
+                document.getElementById('aiWord').innerText = "データがないよ";
+            }
         }
 
         function aiTurn(word) {
@@ -65,8 +76,14 @@
             const wordEl = document.getElementById('aiWord');
             const imgEl = document.getElementById('aiImage');
             wordEl.innerText = word.kana;
-            if(word.img) { imgEl.src = word.img; imgEl.style.display = 'block'; } 
-            else { imgEl.style.display = 'none'; }
+            
+            // 画像表示（URLがある場合のみ）
+            if(word.img) { 
+                imgEl.src = word.img; 
+                imgEl.style.display = 'block'; 
+            } else { 
+                imgEl.style.display = 'none'; 
+            }
             speak(word.kana);
             showUserChoices(word.kana);
         }
@@ -75,21 +92,33 @@
             const container = document.getElementById('choices');
             container.innerHTML = '';
             const lastChar = lastKana.slice(-1);
+            
             let available = wordsData.filter(w => !usedWords.includes(w.kana));
             let correct = available.filter(w => w.kana.startsWith(lastChar));
             let incorrect = available.filter(w => !w.kana.startsWith(lastChar));
 
-            if (correct.length === 0) { endGame("「カード」なくなっちゃった。", "ai"); return; }
+            if (correct.length === 0) { endGame("カードがなくなっちゃった", "ai"); return; }
 
-            correct.sort(() => Math.random() - 0.5);
-            incorrect.sort(() => Math.random() - 0.5);
-
+            // 表示する単語リストの作成
             let displayWords = [];
             let seen = new Set();
-            // 重複排除して正解を最大2つ
-            for(let w of correct) { if(displayWords.length < 2 && !seen.has(w.kana)) { displayWords.push(w); seen.add(w.kana); } }
-            // 残りを不正解で埋める
-            for(let w of incorrect) { if(displayWords.length < 3 && !seen.has(w.kana)) { displayWords.push(w); seen.add(w.kana); } }
+            
+            // 正解を優先的に入れる
+            correct.sort(() => Math.random() - 0.5);
+            for(let w of correct) {
+                if(displayWords.length < 2 && !seen.has(w.kana)) {
+                    displayWords.push(w);
+                    seen.add(w.kana);
+                }
+            }
+            // 不正解で埋める
+            incorrect.sort(() => Math.random() - 0.5);
+            for(let w of incorrect) {
+                if(displayWords.length < 3 && !seen.has(w.kana)) {
+                    displayWords.push(w);
+                    seen.add(w.kana);
+                }
+            }
 
             displayWords.sort(() => Math.random() - 0.5).forEach(word => {
                 const btn = document.createElement('button');
@@ -98,6 +127,7 @@
                 btn.onclick = (e) => { e.stopPropagation(); userSelect(word, lastChar); };
                 container.appendChild(btn);
             });
+
             while(container.children.length < 3) {
                 const b = document.createElement('button'); b.className = 'choice'; b.innerText = "うりきれ"; b.disabled = true; container.appendChild(b);
             }
@@ -108,7 +138,12 @@
             usedWords.push(word.kana);
             document.getElementById('userWord').innerText = word.kana;
             speak(word.kana);
-            if(word.kana.endsWith("ん")) { setTimeout(() => endGame("「ん」がついたよ。", "ai"), 800); return; }
+            
+            if(word.kana.endsWith("ん")) { 
+                setTimeout(() => endGame("「ん」がついたよ。", "ai"), 800); 
+                return; 
+            }
+            
             setTimeout(() => {
                 let aiMatches = wordsData.filter(w => w.kana.startsWith(word.kana.slice(-1)) && !usedWords.includes(w.kana));
                 if(aiMatches.length === 0) { endGame("じじの まけ！", "user"); return; }
@@ -117,14 +152,29 @@
         }
 
         function endGame(text, winner) {
-            document.getElementById('msgArea').innerText = text; speak(text);
+            document.getElementById('msgArea').innerText = text;
+            speak(text);
             const btn = `<button class="retry-btn" onclick="startGame()">もういっかい！</button>`;
-            if(winner === "ai") { document.getElementById('aiWord').innerText = ""; document.getElementById('aiImage').style.display='none'; document.getElementById('aiRetry').innerHTML = btn; }
-            else { document.getElementById('userWord').innerText = ""; document.getElementById('userRetry').innerHTML = btn; }
+            if(winner === "ai") {
+                document.getElementById('aiWord').innerText = text;
+                document.getElementById('aiImage').style.display='none';
+                document.getElementById('aiRetry').innerHTML = btn;
+            } else {
+                document.getElementById('userWord').innerText = "";
+                document.getElementById('userRetry').innerHTML = btn;
+            }
             document.getElementById('choices').innerHTML = '';
         }
 
-        function speak(text) { if(!voiceEnabled) return; const u = new SpeechSynthesisUtterance(text); u.lang = 'ja-JP'; window.speechSynthesis.speak(u); }
+        function speak(text) {
+            if(!voiceEnabled) return;
+            try {
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = 'ja-JP';
+                u.rate = 1.0;
+                window.speechSynthesis.speak(u);
+            } catch(e) { console.log("Speech error"); }
+        }
     </script>
 </body>
 </html>
