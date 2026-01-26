@@ -4,72 +4,71 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>3さい おめでとう！しりとりAI</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        /* 画面全体のバランス調整 */
         body { 
-            font-family: sans-serif; 
-            text-align: center; 
-            background-color: #FFF0F5; 
-            margin: 0;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            height: 100vh; /* 画面の高さに合わせる */
-            box-sizing: border-box;
+            font-family: sans-serif; text-align: center; background-color: #FFF0F5; 
+            margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box;
         }
-        /* タイトルエリア */
-        h1 { color: #FF69B4; font-size: 1.2rem; margin: 10px 0; }
+        /* ① エリア固定：上から順番に配置 */
+        #header { height: 10%; color: #FF69B4; font-size: 1.2rem; font-weight: bold; }
+        #aiArea { height: 25%; display: flex; flex-direction: column; justify-content: center; }
         #status { font-size: 0.9rem; color: #666; }
-
-        /* じじAIの言葉エリア（中央に大きく） */
-        #aiArea { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-        #aiWord { font-size: 3.5rem; font-weight: bold; color: #FF4500; margin: 10px 0; }
-
-        /* お孫さんのボタンエリア（下側に配置） */
-        .choices { 
-            display: flex; 
-            flex-direction: column; 
-            gap: 12px; 
-            padding-bottom: 20px;
-            width: 100%;
-            align-items: center;
-        }
-        button.choice {
-            width: 85%; max-width: 300px; padding: 15px;
-            font-size: 1.6rem; border-radius: 50px; border: none;
-            background-color: #FFB6C1; color: white;
-            box-shadow: 0 4px #FF1493; font-weight: bold;
-        }
-
-        /* 設定ボタン（右上に小さく） */
-        #settingsBtn { position: absolute; top: 10px; right: 10px; font-size: 0.8rem; opacity: 0.6; }
+        #aiWord { font-size: 3.5rem; font-weight: bold; color: #FF4500; }
         
-        /* 下部の案内メッセージ */
-        #msg { font-size: 1rem; color: #D2691E; margin-bottom: 10px; }
+        #resultArea { height: 15%; font-size: 1.5rem; color: #D2691E; display: flex; align-items: center; justify-content: center; }
+        
+        #choices { height: 40%; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; }
+        button.choice {
+            width: 85%; max-width: 300px; padding: 15px; font-size: 1.6rem; border-radius: 50px; 
+            border: none; background-color: #FFB6C1; color: white; box-shadow: 0 4px #FF1493; font-weight: bold;
+        }
+        button.choice:disabled { background-color: #ccc; box-shadow: none; opacity: 0.5; }
+
+        #msgArea { height: 10%; font-size: 1rem; color: #555; }
+
+        /* QRコード（右下に配置） */
+        #qrcode { position: absolute; bottom: 10px; right: 10px; background: white; padding: 5px; border-radius: 5px; }
+        #qrcode img { width: 60px; height: 60px; }
+
+        /* 終了画面のオーバーレイ */
+        #overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.9); flex-direction: column; align-items: center; justify-content: center;
+            z-index: 100;
+        }
     </style>
 </head>
 <body>
-    <button id="settingsBtn">⚙️</button>
-    <h1>おたんじょうび おめでとう！</h1>
+    <div id="header">おたんじょうび おめでとう！</div>
     
     <div id="aiArea">
         <div id="status">じじAIの ばん：</div>
         <div id="aiWord">りんご</div>
     </div>
 
-    <div id="msg">がめんを タッチしてね！</div>
-    <div class="choices" id="choices">
-        </div>
+    <div id="resultArea"><span id="userWord"></span></div>
+
+    <div id="choices"></div>
+
+    <div id="msgArea" id="msg">画面をタッチしてね</div>
+
+    <div id="qrcode"></div>
+
+    <div id="overlay">
+        <h2 id="endMsg"></h2>
+        <button class="choice" onclick="location.reload()">もういっかい！</button>
+    </div>
 
     <script src="words.js"></script>
     <script>
         let voiceEnabled = false;
+        // QRコード生成
+        new QRCode(document.getElementById("qrcode"), window.location.href);
 
-        // 画面タッチで開始
         document.body.onclick = () => {
             if(!voiceEnabled) {
                 voiceEnabled = true;
-                document.getElementById('msg').innerText = "どれに する？";
                 speak("しりとり しよう！");
                 updateGame("りんご");
             }
@@ -80,25 +79,39 @@
             const container = document.getElementById('choices');
             container.innerHTML = '';
             
-            // words.js の関数を呼び出す（ここが動かないとボタンが出ません）
-            if (typeof getChoices === 'function') {
-                const nextWords = getChoices(lastKana);
-                nextWords.forEach(word => {
-                    const btn = document.createElement('button');
-                    btn.className = 'choice';
-                    btn.innerText = word.kana;
-                    btn.onclick = (e) => {
-                        e.stopPropagation(); // 画面クリックイベントを防ぐ
-                        userSelect(word);
-                    };
-                    container.appendChild(btn);
-                });
+            const nextWords = getChoices(lastKana);
+            
+            if (nextWords.length === 0) {
+                endGame("カードがなくなっちゃった！");
+                return;
             }
+
+            nextWords.forEach(word => {
+                const btn = document.createElement('button');
+                btn.className = 'choice';
+                btn.innerText = word.kana;
+                btn.onclick = (e) => { e.stopPropagation(); userSelect(word); };
+                container.appendChild(btn);
+            });
         }
 
         function userSelect(word) {
+            document.getElementById('userWord').innerText = "きみ： " + word.kana;
             speak(word.kana);
-            updateGame(word.kana);
+
+            // ② 「ん」判定ルール
+            if (word.kana.endsWith("ん")) {
+                setTimeout(() => endGame("「ん」がついたよ！じじの勝ち！"), 1000);
+                return;
+            }
+
+            setTimeout(() => updateGame(word.kana), 800);
+        }
+
+        function endGame(text) {
+            speak(text);
+            document.getElementById('endMsg').innerText = text;
+            document.getElementById('overlay').style.display = 'flex';
         }
 
         function speak(text) {
