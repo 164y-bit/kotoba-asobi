@@ -1,27 +1,17 @@
 // event.js
-function handleStart() {
-    usedWords = [];
-    resetDisplay();
-    const startCandidates = wordsData.filter(w => !w.kana.endsWith("ん"));
-    const firstWord = startCandidates[Math.floor(Math.random() * startCandidates.length)];
-    usedWords.push(firstWord.kana);
-    aiTurn(firstWord);
-}
-
 function handleUserSelect(word, lastChar) {
-    // 尻頭でない場合（設計図No.6）
     if (!word.kana.startsWith(lastChar)) {
         showWarning("ちがうよ");
         return;
     }
 
     usedWords.push(word.kana);
-    updateUserDisplay(word.kana); // 「今出した感じ」をつける
+    updateUserDisplay(word.kana);
     speak(word.kana);
 
-    // 「ん」がついた（設計図No.5）
     if (word.kana.endsWith("ん")) {
-        setTimeout(() => endGame("「ん」ついたよ。", "ai", word.kana), 800);
+        // 修正：負けても選択肢を残すため、endGameにfalseを渡す
+        setTimeout(() => endGame("「ん」ついたよ。", "ai", word.kana, false), 800);
         return;
     }
 
@@ -29,18 +19,43 @@ function handleUserSelect(word, lastChar) {
     document.getElementById('msgArea').innerText = "じじAIが かんがえちゅう...";
 
     setTimeout(() => {
+        // 修正：AIが答える直前に「考え中」を消す
+        document.getElementById('msgArea').innerText = "どれにする？";
+        
         const nextWord = getAiNextWord(word.kana);
         if (!nextWord) {
-            // じじAIカード切れ（設計図No.2）
-            endGame("きみの勝ち", "user", word.kana);
+            endGame("きみの勝ち", "user", word.kana, false);
         } else {
-            // じじAIが「ん」を出した（設計図No.4）
             if (nextWord.kana.endsWith("ん")) {
                 aiTurn(nextWord);
-                setTimeout(() => endGame("きみの勝ち", "user", nextWord.kana), 1000);
+                setTimeout(() => endGame("きみの勝ち", "user", nextWord.kana, false), 1000);
             } else {
                 aiTurn(nextWord);
             }
         }
     }, thinkingTime);
+}
+
+// 修正：endGame関数の引数に keepButtons を追加
+function endGame(msg, winner, lastWord, keepButtons = true) {
+    document.getElementById('msgArea').innerText = msg;
+    speak(msg);
+    const btn = `<button class="retry-btn" onclick="handleStart()">もう一回</button>`;
+    if(winner === "ai") {
+        document.getElementById('aiWord').innerText = "もう一回";
+        document.getElementById('userWord').innerText = lastWord;
+        document.getElementById('aiRetry').innerHTML = btn;
+    } else {
+        document.getElementById('aiWord').innerText = lastWord;
+        document.getElementById('userWord').innerText = "もう一回";
+        document.getElementById('userRetry').innerHTML = btn;
+    }
+    // 修正：keepButtonsがfalseならボタンを消さない
+    if (!keepButtons) {
+        // 全ボタンを無効化するだけで、見た目は残す
+        const buttons = document.querySelectorAll('.choice');
+        buttons.forEach(b => b.disabled = true);
+    } else {
+        document.getElementById('choices').innerHTML = '';
+    }
 }
