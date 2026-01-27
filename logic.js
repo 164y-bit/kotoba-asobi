@@ -1,30 +1,45 @@
-// logic.js - しりとりの中枢ロジック
+// logic.js - 長音（ー）対応版
 
-// ゲームの状態管理
 let usedWords = [];
 
-// しりとり判定とAIの回答選択
-function getAiNextWord(userKana) {
-    const lastChar = userKana.slice(-1);
-    let aiMatches = wordsData.filter(w => w.kana.startsWith(lastChar) && !usedWords.includes(w.kana));
+// 次の頭文字を決定するロジック
+function getNextFirstChar(kana) {
+    let lastChar = kana.slice(-1);
     
-    if (aiMatches.length === 0) return null; // 負け
-
-    // 「ん」を避ける単語を優先。なければ諦めて「ん」を出す
-    return aiMatches.find(w => !w.kana.endsWith("ん")) || aiMatches[0];
+    // もし最後が長音「ー」なら、その前の文字を取る
+    if (lastChar === "ー" && kana.length > 1) {
+        lastChar = kana.slice(-2, -1);
+    }
+    
+    // 小さい「ぁぃぅぇぉゃゅょ」などの対応が必要ならここで変換も可能ですが、
+    // まずは長音を解決しましょう。
+    return lastChar;
 }
 
-// ユーザーの選択肢を作る（知育ロジック）
+function getAiNextWord(userKana) {
+    // 長音を考慮した頭文字を取得
+    const headChar = getNextFirstChar(userKana);
+    
+    let aiMatches = wordsData.filter(w => w.kana.startsWith(headChar) && !usedWords.includes(w.kana));
+    
+    if (aiMatches.length === 0) return null;
+
+    const selected = aiMatches.find(w => !w.kana.endsWith("ん")) || aiMatches[0];
+    usedWords.push(selected.kana); 
+    return selected;
+}
+
 function createChoices(lastKana) {
-    const lastChar = lastKana.slice(-1);
+    // ユーザーへの選択肢も、長音を考慮した頭文字から作成
+    const headChar = getNextFirstChar(lastKana);
+    
     let available = wordsData.filter(w => !usedWords.includes(w.kana));
-    let correct = available.filter(w => w.kana.startsWith(lastChar));
-    let incorrect = available.filter(w => !w.kana.startsWith(lastChar));
+    let correct = available.filter(w => w.kana.startsWith(headChar));
+    let incorrect = available.filter(w => !w.kana.startsWith(headChar));
 
     let displayWords = [];
     let seen = new Set();
 
-    // 正解を最大2つ
     correct.sort(() => Math.random() - 0.5);
     for(let w of correct) {
         if(displayWords.length < 2 && !seen.has(w.kana)) {
@@ -33,7 +48,6 @@ function createChoices(lastKana) {
         }
     }
 
-    // 残りを不正解で埋める
     incorrect.sort(() => Math.random() - 0.5);
     for(let w of incorrect) {
         if(displayWords.length < 3 && !seen.has(w.kana)) {

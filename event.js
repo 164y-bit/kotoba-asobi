@@ -1,22 +1,33 @@
-// event.js - ゲーム進行と演出
+// event.js - 更新版
 
 function handleStart() {
     usedWords = [];
-    resetDisplay(); // ui.js(index内)で定義
+    resetDisplay();
     
     const startCandidates = wordsData.filter(w => !w.kana.endsWith("ん"));
     const firstWord = startCandidates[Math.floor(Math.random() * startCandidates.length)];
+    
+    // 最初の単語も「使用済み」に入れる
+    usedWords.push(firstWord.kana);
     aiTurn(firstWord);
 }
 
 function handleUserSelect(word, lastChar) {
     if (!word.kana.startsWith(lastChar)) {
+        // 「ちがうよ」を目立たせる演出
+        const msg = document.getElementById('msgArea');
+        msg.style.color = "red";
+        msg.style.fontSize = "1.5rem";
         speak("あれ？ちがうよ！");
+        setTimeout(() => { 
+            msg.style.color = "#D2691E"; 
+            msg.style.fontSize = "1rem";
+        }, 1000);
         return;
     }
 
     usedWords.push(word.kana);
-    updateUserDisplay(word.kana); // ui.js(index内)で定義
+    updateUserDisplay(word.kana); // 今出した感じをUI側でつける
     speak(word.kana);
 
     if (word.kana.endsWith("ん")) {
@@ -24,7 +35,11 @@ function handleUserSelect(word, lastChar) {
         return;
     }
 
-    // AIの番へ
+    // AIの番：思考時間をランダムにする（1000ms 〜 2500ms）
+    const thinkingTime = Math.floor(Math.random() * 1500) + 1000;
+    
+    document.getElementById('msgArea').innerText = "じじAIが かんがえちゅう...";
+
     setTimeout(() => {
         const nextWord = getAiNextWord(word.kana);
         if (!nextWord) {
@@ -32,5 +47,5 @@ function handleUserSelect(word, lastChar) {
         } else {
             aiTurn(nextWord);
         }
-    }, 1000);
+    }, thinkingTime);
 }
