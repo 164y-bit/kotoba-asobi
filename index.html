@@ -6,48 +6,28 @@
     <title>かいとくん しりとり</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        /* ② デザイン：じじ様のこだわり通り、ここに集約 */
         body { font-family: sans-serif; text-align: center; background-color: #FFF0F5; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; overflow: hidden; }
         #header { height: 8%; color: #FF69B4; font-size: 1.2rem; font-weight: bold; }
         #aiArea { height: 35%; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 2px dashed #FFB6C1; border-radius: 15px; background: white; margin-bottom: 5px; position: relative; }
         #aiWord { font-size: 3.5rem; font-weight: bold; color: #FF4500; }
-        #userArea { height: 10%; font-size: 2rem; font-weight: bold; color: #4169E1; }
+        #userArea { height: 10%; font-size: 2.2rem; font-weight: bold; color: #4169E1; }
         #choices { height: 35%; display: flex; flex-direction: column; gap: 8px; align-items: center; justify-content: center; }
-        button.choice { width: 85%; max-width: 300px; padding: 12px; font-size: 1.5rem; border-radius: 50px; border: none; background-color: #FFB6C1; color: white; box-shadow: 0 4px #FF1493; font-weight: bold; }
-        button.choice:disabled { background-color: #d3d3d3; color: #888; box-shadow: none; }
+        button.choice { width: 85%; max-width: 300px; padding: 12px; font-size: 1.5rem; border-radius: 50px; border: none; background-color: #FFB6C1; color: white; box-shadow: 0 4px #FF1493; font-weight: bold; transition: 0.1s; }
+        button.choice:active { transform: translateY(4px); box-shadow: none; }
+        .active-card { color: #FF1493 !important; text-decoration: underline; }
         .retry-btn { padding: 15px 30px; font-size: 1.5rem; background: #FFD700; border-radius: 15px; border: none; font-weight: bold; box-shadow: 0 4px #DAA520; }
         #msgArea { height: 7%; font-size: 1rem; color: #D2691E; font-weight: bold; }
         #qrcode { position: absolute; bottom: 10px; right: 10px; background: white; padding: 5px; border-radius: 5px; border: 1px solid #ccc; }
-        /* ボタンを押した時に沈む演出 */
-button.choice:active {
-    transform: translateY(4px);
-    box-shadow: none;
-}
-
-/* 今出したカードを強調するスタイル（JSで動的に付与） */
-.active-card {
-    border: 3px solid #4169E1 !important;
-    font-weight: bold;
-    background-color: #E0FFFF !important;
-    color: #4169E1 !important;
-}
-
     </style>
 </head>
 <body>
     <div id="header">かいとくん しりとり</div>
-    
     <div id="aiArea">
         <div style="font-size:0.8rem;color:#999;">じじAI</div>
         <div id="aiWord">タッチしてね</div>
         <div id="aiRetry"></div>
     </div>
-
-    <div id="userArea">
-        <div id="userWord"></div>
-        <div id="userRetry"></div>
-    </div>
-
+    <div id="userArea"><div id="userWord"></div><div id="userRetry"></div></div>
     <div id="choices"></div>
     <div id="msgArea">がめんを おして スタート！</div>
     <div id="qrcode"></div>
@@ -55,94 +35,72 @@ button.choice:active {
     <script src="words.js"></script>
     <script src="logic.js"></script>
     <script src="event.js"></script>
-
     <script>
-        /* ③ 表示・音処理（UI）のみをここに残す */
         let voiceEnabled = false;
-
-        // QRコード生成
-        try {
-            new QRCode(document.getElementById("qrcode"), { text: window.location.href, width: 80, height: 80 });
-        } catch(e) {}
+        try { new QRCode(document.getElementById("qrcode"), { text: window.location.href, width: 80, height: 80 }); } catch(e) {}
 
         document.body.onclick = () => {
-            if(!voiceEnabled) {
-                voiceEnabled = true;
-                speak("しりとりしよう！");
-                handleStart(); // event.js の関数を呼ぶ
-            }
+            if(!voiceEnabled) { voiceEnabled = true; speak("しりとりしよう！"); handleStart(); }
         };
 
-        // 画面リセット
         function resetDisplay() {
             document.getElementById('aiRetry').innerHTML = "";
             document.getElementById('userRetry').innerHTML = "";
             document.getElementById('userWord').innerText = "";
+            document.getElementById('aiWord').classList.remove('active-card');
             document.getElementById('msgArea').innerText = "どれにする？";
         }
 
-        // AIの表示更新
         function aiTurn(word) {
-            usedWords.push(word.kana);
-            document.getElementById('aiWord').innerText = word.kana;
+            document.getElementById('userWord').classList.remove('active-card');
+            const el = document.getElementById('aiWord');
+            el.innerText = word.kana;
+            el.classList.add('active-card');
             speak(word.kana);
-            
-            // logic.js で計算した選択肢を表示
             const choices = createChoices(word.kana);
-            renderButtons(choices, word.kana.slice(-1));
+            renderButtons(choices, getNextFirstChar(word.kana));
         }
 
-        // ユーザーの回答表示
         function updateUserDisplay(kana) {
-            document.getElementById('userWord').innerText = kana;
+            document.getElementById('aiWord').classList.remove('active-card');
+            const el = document.getElementById('userWord');
+            el.innerText = kana;
+            el.classList.add('active-card');
         }
-function updateUserDisplay(kana) {
-    const el = document.getElementById('userWord');
-    el.innerText = kana;
-    el.classList.add('active-card'); // 青枠をつける
-}
 
-// aiTurnの最初で active-card を消す処理を足すと完璧です
-function aiTurn(word) {
-    document.getElementById('userWord').classList.remove('active-card');
-    // ...以下そのまま
-
-        // ボタンを描画する
         function renderButtons(displayWords, lastChar) {
             const container = document.getElementById('choices');
             container.innerHTML = '';
-
             displayWords.forEach(word => {
                 const btn = document.createElement('button');
                 btn.className = 'choice';
                 btn.innerText = word.kana;
-                btn.onclick = (e) => { 
-                    e.stopPropagation(); 
-                    handleUserSelect(word, lastChar); // event.js の関数を呼ぶ
-                };
+                btn.onclick = (e) => { e.stopPropagation(); handleUserSelect(word, lastChar); };
                 container.appendChild(btn);
             });
-
-            // 3つに満たない時の「うりきれ」補充
             while(container.children.length < 3) {
-                const b = document.createElement('button');
-                b.className = 'choice';
-                b.innerText = "うりきれ";
-                b.disabled = true;
-                container.appendChild(b);
+                const b = document.createElement('button'); b.className = 'choice'; b.innerText = "うりきれ"; b.disabled = true; container.appendChild(b);
             }
         }
 
-        // ゲーム終了表示
-        function endGame(text, winner) {
-            document.getElementById('msgArea').innerText = text;
-            speak(text);
-            const btn = `<button class="retry-btn" onclick="handleStart()">もういっかい！</button>`;
+        function showWarning(txt) {
+            const msg = document.getElementById('msgArea');
+            msg.innerText = txt; msg.style.color = "red";
+            speak(txt);
+            setTimeout(() => { msg.style.color = "#D2691E"; msg.innerText = "どれにする？"; }, 1000);
+        }
+
+        function endGame(msg, winner, lastWord) {
+            document.getElementById('msgArea').innerText = msg;
+            speak(msg);
+            const btn = `<button class="retry-btn" onclick="handleStart()">もう一回</button>`;
             if(winner === "ai") {
-                document.getElementById('aiWord').innerText = text;
+                document.getElementById('aiWord').innerText = "もう一回";
+                document.getElementById('userWord').innerText = lastWord;
                 document.getElementById('aiRetry').innerHTML = btn;
             } else {
-                document.getElementById('userWord').innerText = "";
+                document.getElementById('aiWord').innerText = lastWord;
+                document.getElementById('userWord').innerText = "もう一回";
                 document.getElementById('userRetry').innerHTML = btn;
             }
             document.getElementById('choices').innerHTML = '';
