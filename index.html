@@ -6,32 +6,20 @@
     <title>かいとくん しりとり</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        body { font-family: sans-serif; text-align: center; background-color: #FFF0F5; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; overflow: hidden; }
-        #header { height: 8%; color: #FF69B4; font-size: 1.2rem; font-weight: bold; }
+        /* デザイン：スマホとiPadの両方で崩れない設定 */
+        body { font-family: sans-serif; text-align: center; background-color: #FFF0F5; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; overflow: hidden; }
+        #header { height: 6%; color: #FF69B4; font-size: 1.1rem; font-weight: bold; }
         #aiArea { height: 35%; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 2px dashed #FFB6C1; border-radius: 15px; background: white; margin-bottom: 5px; position: relative; }
         #aiWord { font-size: 3.5rem; font-weight: bold; color: #FF4500; }
-        #userArea { height: 10%; font-size: 2.2rem; font-weight: bold; color: #4169E1; }
-        #choices { height: 35%; display: flex; flex-direction: column; gap: 8px; align-items: center; justify-content: center; }
-        button.choice { width: 85%; max-width: 300px; padding: 12px; font-size: 1.5rem; border-radius: 50px; border: none; background-color: #FFB6C1; color: white; box-shadow: 0 4px #FF1493; font-weight: bold; transition: 0.1s; }
+        #userArea { height: 12%; font-size: 2.2rem; font-weight: bold; color: #4169E1; display: flex; align-items: center; justify-content: center; }
+        #choices { height: 35%; display: flex; flex-direction: column; gap: 6px; align-items: center; justify-content: center; }
+        button.choice { width: 85%; max-width: 300px; padding: 12px; font-size: 1.5rem; border-radius: 50px; border: none; background-color: #FFB6C1; color: white; box-shadow: 0 4px #FF1493; font-weight: bold; }
         button.choice:active { transform: translateY(4px); box-shadow: none; }
         .active-card { color: #FF1493 !important; text-decoration: underline; }
         .retry-btn { padding: 15px 30px; font-size: 1.5rem; background: #FFD700; border-radius: 15px; border: none; font-weight: bold; box-shadow: 0 4px #DAA520; }
-        #msgArea { height: 7%; font-size: 1rem; color: #D2691E; font-weight: bold; }
-        #qrcode { position: absolute; bottom: 10px; right: 10px; background: white; padding: 5px; border-radius: 5px; border: 1px solid #ccc; }
-    /* 修正：全体の高さをスマホに最適化 */
-    body { font-family: sans-serif; text-align: center; background-color: #FFF0F5; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; overflow: hidden; }
-    #header { height: 6%; color: #FF69B4; font-size: 1.1rem; font-weight: bold; }
-    #aiArea { height: 35%; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 2px dashed #FFB6C1; border-radius: 15px; background: white; margin-bottom: 5px; position: relative; }
-    #aiWord { font-size: 3.5rem; font-weight: bold; color: #FF4500; }
-    #userArea { height: 12%; font-size: 2.2rem; font-weight: bold; color: #4169E1; display: flex; align-items: center; justify-content: center; position: relative; }
-    #choices { height: 35%; display: flex; flex-direction: column; gap: 6px; align-items: center; justify-content: center; }
-    /* 修正：QRコードをAIエリアの右上に配置 */
-    #qrcode { position: absolute; top: 10px; right: 10px; background: white; padding: 3px; border-radius: 5px; border: 1px solid #ccc; z-index: 10; }
-    /* 修正：メッセージエリアを少し上に余裕を持たせる */
-    #msgArea { height: 10%; font-size: 1.1rem; color: #D2691E; font-weight: bold; display: flex; align-items: center; justify-content: center; padding-bottom: 5px; }
-    /* 以下、既存のスタイル（ボタン等）はそのまま */
-</style>
-
+        #msgArea { height: 10%; font-size: 1.1rem; color: #D2691E; font-weight: bold; display: flex; align-items: center; justify-content: center; padding-bottom: 10px; }
+        #qrcode { position: absolute; top: 10px; right: 10px; background: white; padding: 3px; border-radius: 5px; border: 1px solid #ccc; z-index: 10; }
+    </style>
 </head>
 <body>
     <div id="header">かいとくん しりとり</div>
@@ -39,11 +27,11 @@
         <div style="font-size:0.8rem;color:#999;">じじAI</div>
         <div id="aiWord">タッチしてね</div>
         <div id="aiRetry"></div>
+        <div id="qrcode"></div>
     </div>
     <div id="userArea"><div id="userWord"></div><div id="userRetry"></div></div>
     <div id="choices"></div>
     <div id="msgArea">がめんを おして スタート！</div>
-    <div id="qrcode"></div>
 
     <script src="words.js"></script>
     <script src="logic.js"></script>
@@ -103,7 +91,7 @@
             setTimeout(() => { msg.style.color = "#D2691E"; msg.innerText = "どれにする？"; }, 1000);
         }
 
-        function endGame(msg, winner, lastWord) {
+        function endGame(msg, winner, lastWord, keepButtons = true) {
             document.getElementById('msgArea').innerText = msg;
             speak(msg);
             const btn = `<button class="retry-btn" onclick="handleStart()">もう一回</button>`;
@@ -116,7 +104,12 @@
                 document.getElementById('userWord').innerText = "もう一回";
                 document.getElementById('userRetry').innerHTML = btn;
             }
-            document.getElementById('choices').innerHTML = '';
+            if (!keepButtons) {
+                const buttons = document.querySelectorAll('.choice');
+                buttons.forEach(b => b.disabled = true);
+            } else {
+                document.getElementById('choices').innerHTML = '';
+            }
         }
 
         function speak(text) {
