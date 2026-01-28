@@ -1,0 +1,1 @@
+const wordsData = [{kana:"ああ"}];
