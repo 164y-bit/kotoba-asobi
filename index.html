@@ -14,7 +14,6 @@
         #msgArea { height: 8%; font-size: 1.1rem; color: #D2691E; font-weight: bold; display: flex; align-items: center; justify-content: center; }
         #choices { height: 38%; display: flex; flex-direction: column; gap: 8px; align-items: center; justify-content: flex-start; }
         button.choice { width: 85%; max-width: 300px; padding: 12px; font-size: 1.4rem; border-radius: 50px; border: none; background-color: #FFB6C1; color: white; box-shadow: 0 4px #FF1493; font-weight: bold; }
-        /* 間違えた時の赤色、選んだ時の濃いピンク */
         .selected-btn { background-color: #FF1493 !important; transform: translateY(4px); box-shadow: none !important; }
         .error-btn { background-color: #FF6347 !important; box-shadow: none !important; border: 3px solid #B22222 !important; }
         .retry-btn { padding: 12px 25px; font-size: 1.4rem; background: #FFD700; border-radius: 15px; border: none; font-weight: bold; box-shadow: 0 4px #DAA520; }
@@ -29,28 +28,24 @@
         <div id="aiRetry"></div>
     </div>
     <div id="userArea"><div id="userWord"></div><div id="userRetry"></div></div>
-    
     <div id="msgArea">がめんを おして スタート！
         <div id="qrContainer">
             <div id="qrcode"></div>
         </div>
     </div>
-    
     <div id="choices"></div>
 
+    <script src="words.js"></script>
     <script>
-        const wordsData = [{kana:"いえ"},{kana:"へや"},{kana:"いす"},{kana:"つくえ"},{kana:"たんす"},{kana:"ほんだな"},{kana:"べっど"},{kana:"ふとん"},{kana:"まくら"},{kana:"かがみ"},{kana:"かーてん"},{kana:"どあ"},{kana:"まど"},{kana:"ゆか"},{kana:"てんじょう"},{kana:"れいぞうこ"},{kana:"でんしれんじ"},{kana:"がすこんろ"},{kana:"なべ"},{kana:"ふらいぱん"},{kana:"おたま"},{kana:"さら"},{kana:"こっぷ"},{kana:"はし"},{kana:"すぷーん"},{kana:"ふぉーく"},{kana:"まないた"},{kana:"ほうちょう"},{kana:"すいどう"},{kana:"しんく"},{kana:"ごはん"},{kana:"ぱん"},{kana:"みず"},{kana:"ぎゅうにゅう"},{kana:"じゅーす"},{kana:"りんご"},{kana:"ばなな"},{kana:"みかん"},{kana:"いちご"},{kana:"たまご"},{kana:"にく"},{kana:"さかな"},{kana:"やさい"},{kana:"すーぷ"},{kana:"おやつ"},{kana:"おふろ"},{kana:"ゆぶね"},{kana:"しゃわー"},{kana:"せっけん"},{kana:"しゃんぷー"},{kana:"りんす"},{kana:"たおる"},{kana:"はぶらし"},{kana:"はみがき"},{kana:"せんめんだい"},{kana:"どらいやー"},{kana:"といれ"},{kana:"べんざ"},{kana:"といれっとぺーぱー"},{kana:"ながし"},{kana:"ふた"},{kana:"ふく"},{kana:"しゃつ"},{kana:"ずぼん"},{kana:"すかーと"},{kana:"くつ"},{kana:"くつした"},{kana:"ぼうし"},{kana:"こーと"},{kana:"ぱじゃま"},{kana:"したぎ"},{kana:"せーたー"},{kana:"てれび"},{kana:"えあこん"},{kana:"せんぷうき"},{kana:"でんき"},{kana:"らいと"},{kana:"すいっち"},{kana:"りもこん"},{kana:"でんわ"},{kana:"すまほ"},{kana:"たぶれっと"},{kana:"ぱそこん"},{kana:"おもちゃ"},{kana:"つみき"},{kana:"ぶろっく"},{kana:"ぬいぐるみ"},{kana:"ぼーる"},{kana:"くるま"},{kana:"でんしゃ"},{kana:"ひこうき"},{kana:"ろぼっと"},{kana:"どーる"},{kana:"えほん"},{kana:"かーど"},{kana:"ぱずる"},{kana:"えんぴつ"},{kana:"くれよん"},{kana:"ぺん"},{kana:"けしごむ"},{kana:"のーと"},{kana:"ほん"},{kana:"かみ"},{kana:"はさみ"},{kana:"せろてーぷ"},{kana:"かばん"},{kana:"りゅっく"},{kana:"さいふ"},{kana:"かぎ"},{kana:"とけい"},{kana:"めがね"},{kana:"はこ"},{kana:"ぶくろ"},{kana:"てぃっしゅ"},{kana:"ごみばこ"},{kana:"そうじき"},{kana:"ほうき"},{kana:"ちりとり"},{kana:"まま"},{kana:"ぱぱ"},{kana:"あかちゃん"},{kana:"おにいちゃん"},{kana:"おねえちゃん"},{kana:"おばあちゃん"},{kana:"おじいちゃん"},{kana:"あたま"},{kana:"かお"},{kana:"め"},{kana:"はな"},{kana:"くち"},{kana:"みみ"},{kana:"て"},{kana:"ゆび"},{kana:"あし"},{kana:"おなか"},{kana:"ねんね"},{kana:"おでかけ"},{kana:"かえり"},{kana:"じゅんび"},{kana:"かれんだー"},{kana:"しゃしん"},{kana:"え"},{kana:"かざり"},{kana:"ぽすたー"},{kana:"てーぶる"},{kana:"らぐ"},{kana:"いぬ"},{kana:"ねこ"},{kana:"かめ"},{kana:"と"},{kana:"おと"},{kana:"こえ"},{kana:"うた"},{kana:"おんがく"},{kana:"げんかん"},{kana:"くつばこ"},{kana:"だいどころ"},{kana:"りびんぐ"},{kana:"しんしつ"},{kana:"ひきだし"},{kana:"たな"},{kana:"かーぺっと"},{kana:"まっと"}];
-
         let voiceEnabled = false;
         let usedWords = [];
 
-        // 初期表示でQRを表示
         try { new QRCode(document.getElementById("qrcode"), { text: window.location.href, width: 80, height: 80 }); } catch(e) {}
 
         document.body.onclick = () => {
             if(!voiceEnabled) { 
                 voiceEnabled = true; 
-                document.getElementById('qrContainer').style.display = 'none'; // ゲーム開始でQRを消す
+                document.getElementById('qrContainer').style.display = 'none';
                 speak("しりとりしよう！"); 
                 handleStart(); 
             }
@@ -78,13 +73,10 @@
         }
 
         function aiTurn(word) {
-            // AIの番になったら、ユーザーエリアの文字を消す（3.のご指示）
             document.getElementById('userWord').innerText = ""; 
-            
             const el = document.getElementById('aiWord');
             el.innerText = word.kana;
             speak(word.kana);
-            
             const head = getNextChar(word.kana);
             const choices = createChoices(head);
             renderButtons(choices, head);
@@ -104,12 +96,10 @@
         function renderButtons(list, head) {
             const area = document.getElementById('choices');
             area.innerHTML = '';
-            
             if (list.length === 0) {
                 setTimeout(() => endGame("カード切れちゃった", "user", document.getElementById('aiWord').innerText), 500);
                 return;
             }
-
             list.forEach(w => {
                 const b = document.createElement('button');
                 b.className = 'choice';
@@ -123,37 +113,27 @@
         }
 
         function userSelect(btnElement, word, head) {
-            // 4. 間違い入力時の対応
             if(!word.kana.startsWith(head)) {
-                btnElement.classList.add('error-btn'); // ボタンを赤くして保持
+                btnElement.classList.add('error-btn');
                 speak("ちがうよ、えらびなおしてね");
                 document.getElementById('msgArea').innerText = "ちがうよ、えらびなおしてね";
-                // 1.5秒後にメッセージだけ戻すが、ボタンの赤色はそのままにしておく
-                setTimeout(() => { 
-                    document.getElementById('msgArea').innerText = "どれにする？"; 
-                }, 1500);
+                setTimeout(() => { document.getElementById('msgArea').innerText = "どれにする？"; }, 1500);
                 return;
             }
-            
-            // 正解の場合
             document.querySelectorAll('.choice').forEach(b => b.classList.remove('selected-btn', 'error-btn'));
             btnElement.classList.add('selected-btn');
-            
             usedWords.push(word.kana);
             const el = document.getElementById('userWord');
             el.innerText = word.kana;
             speak(word.kana);
-
             if(word.kana.endsWith("ん")) {
                 setTimeout(() => endGame("「ん」ついたよ。", "ai", word.kana), 800);
                 return;
             }
-
             document.getElementById('msgArea').innerText = "じじAIが かんがえちゅう...";
             setTimeout(() => {
                 const nextHead = getNextChar(word.kana);
                 let matches = wordsData.filter(w => w.kana.startsWith(nextHead) && !usedWords.includes(w.kana));
-                
                 if(matches.length === 0) {
                     endGame("きみの勝ち", "user", word.kana);
                 } else {
@@ -161,9 +141,7 @@
                     const aiWord = matches.find(w => !w.kana.endsWith("ん")) || matches[0];
                     usedWords.push(aiWord.kana);
                     aiTurn(aiWord);
-                    if(aiWord.kana.endsWith("ん")) {
-                        setTimeout(() => endGame("きみの勝ち", "user", aiWord.kana), 1000);
-                    }
+                    if(aiWord.kana.endsWith("ん")) setTimeout(() => endGame("きみの勝ち", "user", aiWord.kana), 1000);
                 }
             }, 1500);
         }
@@ -172,22 +150,16 @@
             document.getElementById('msgArea').innerText = msg;
             speak(msg);
             const retryBtnHtml = `<button class="retry-btn" onclick="handleStart()">もう一回</button>`;
-            
-            // 2. 終了画面のロジック
             if(msg === "きみの勝ち") {
-                // じじAIが負けた時：じじAIエリアは「カード切れ」等の文字のみ、ユーザー側に「もう一回」
                 document.getElementById('aiWord').innerText = "カード切れ";
                 document.getElementById('aiWord').style.color = "#999";
-                document.getElementById('userWord').innerText = lastWord; // 自分が最後に出した言葉
+                document.getElementById('userWord').innerText = lastWord;
                 document.getElementById('userRetry').innerHTML = retryBtnHtml;
-            } else if(msg.includes("ん") || msg.includes("カード切れちゃった")) {
-                // ユーザーが負けた時：ユーザー側に「もう一回」
+            } else {
                 document.getElementById('aiWord').innerText = lastWord;
                 document.getElementById('userWord').innerText = msg.includes("ん") ? "ん がついた" : "カード切れ";
                 document.getElementById('userRetry').innerHTML = retryBtnHtml;
             }
-            
-            // 選択肢ボタンはそのまま残す（無効化のみ）
             document.querySelectorAll('.choice').forEach(b => {
                 b.disabled = true;
                 if(!b.classList.contains('selected-btn')) b.style.opacity = "0.5";

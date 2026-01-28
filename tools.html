@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>単語メンテナンスツール</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
+        textarea { width: 100%; height: 200px; margin-bottom: 10px; }
+        .result { background: #f0f0f0; padding: 15px; border-radius: 8px; white-space: pre-wrap; font-family: monospace; }
+        .error { color: red; font-weight: bold; }
+        .success { color: green; font-weight: bold; }
+        button { padding: 10px 20px; font-size: 1rem; cursor: pointer; background: #FF69B4; color: white; border: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h2>単語メンテナンスツール</h2>
+    <p>追加したい単語を改行区切り、またはカンマ区切りで入力してください。</p>
+    
+    <textarea id="inputWords" placeholder="例：&#13;いちご&#13;みかん&#13;りんご"></textarea>
+    <br>
+    <button onclick="checkWords()">重複チェック実行</button>
+
+    <h3>1. チェック結果</h3>
+    <div id="status" class="result">ここに結果が出ます</div>
+
+    <h3>2. 最新の words.js 用データ（これをコピーして上書き）</h3>
+    <div id="output" class="result">ここにプログラム用のデータが出ます</div>
+
+    <script>
+        // 現在の words.js の中身をここに貼り付けておいてください
+        const currentWords = ["いえ", "へや", "いす", "つくえ", "たんす", "ほんだな", "べっど", "ふとん", "まくら", "かがみ", "かーてん", "どあ", "まど", "ゆか", "てんじょう", "れいぞうこ", "でんしれんじ", "がすこんろ", "なべ", "ふらいぱん", "おたま", "さら", "こっぷ", "はし", "すぷーん", "ふぉーく", "まないた", "ほうちょう", "すいどう", "しんく", "ごはん", "ぱん", "みず", "ぎゅうにゅう", "じゅーす", "りんご", "ばなな", "みかん", "いちご", "たまご", "にく", "さかな", "やさい", "すーぷ", "おやつ", "おふろ", "ゆぶね", "しゃわー", "せっけん", "しゃんぷー", "りんす", "たおる", "はぶらし", "はみがき", "せんめんだい", "どらいやー", "といれ", "べんざ", "といれっとぺーぱー", "ながし", "ふた", "ふく", "しゃつ", "ずぼん", "すかーと", "くつ", "くつした", "ぼうし", "こーと", "ぱじゃま", "したぎ", "せーたー", "てれび", "えあこん", "せんぷうき", "でんき", "らいと", "すいっち", "りもこん", "でんわ", "すまほ", "たぶれっと", "ぱそこん", "おもちゃ", "つみき", "ぶろっく", "ぬいぐるみ", "ぼーる", "くるま", "でんしゃ", "ひこうき", "ろぼっと", "どーる", "えほん", "かーど", "ぱずる", "えんぴつ", "くれよん", "ぺん", "けしごむ", "のーと", "ほん", "かみ", "はさみ", "せろてーぷ", "かばん", "りゅっく", "さいふ", "かぎ", "とけい", "めがね", "はこ", "ぶくろ", "てぃっしゅ", "ごみばこ", "そうじき", "ほうき", "ちりとり", "まま", "ぱぱ", "あかちゃん", "おにいちゃん", "おねえちゃん", "おばあちゃん", "おじいちゃん", "あたま", "かお", "め", "はな", "くち", "みみ", "て", "ゆび", "あし", "おなか", "ねんね", "おでかけ", "かえり", "じゅんび", "かれんだー", "しゃしん", "え", "かざり", "ぽすたー", "てーぶる", "らぐ", "いぬ", "ねこ", "かめ", "と", "おと", "こえ", "うた", "おんがく", "げんかん", "くつばこ", "だいどころ", "りびんぐ", "しんしつ", "ひきだし", "たな", "かーぺっと", "まっと"];
+
+        function checkWords() {
+            const input = document.getElementById('inputWords').value;
+            // 改行や空白、カンマで分割して配列にする
+            const newWordsRaw = input.split(/[\s,、\n]+/).filter(w => w.length > 0);
+            
+            let added = [];
+            let duplicated = [];
+
+            newWordsRaw.forEach(word => {
+                if (currentWords.includes(word) || added.includes(word)) {
+                    duplicated.push(word);
+                } else {
+                    added.push(word);
+                }
+            });
+
+            // 1. ステータス表示
+            const statusEl = document.getElementById('status');
+            statusEl.innerHTML = `<span class="success">新しく追加する単語 (${added.length}語):</span> ${added.join(', ')}<br><br>` +
+                                 `<span class="error">重複しているため無視した単語 (${duplicated.length}語):</span> ${duplicated.join(', ')}`;
+
+            // 2. JS用出力 (index.html の wordsData に貼り付けられる形式)
+            const allWords = currentWords.concat(added);
+            const outputEl = document.getElementById('output');
+            const jsonText = allWords.map(w => `{kana:"${w}"}`).join(',');
+            outputEl.innerText = `const wordsData = [${jsonText}];`;
+        }
+    </script>
+</body>
+</html>
