@@ -1,1 +1,1 @@
-const wordsData = [{kana:"ああ"},{kana:"あい"},{kana:"あう"},{kana:"あえ"},{kana:"あお"},{kana:"かあ"},{kana:"かい"},{kana:"かう"},{kana:"かえ"},{kana:"かお"}];
+const wordsData = [{kana:"ああ"},{kana:"いあ"},{kana:"うあ"},{kana:"えあ"},{kana:"おあ"},{kana:"あか"},{kana:"いか"},{kana:"うか"},{kana:"えか"},{kana:"おか"}];
