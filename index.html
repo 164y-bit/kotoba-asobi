@@ -29,9 +29,7 @@
     </div>
     <div id="userArea"><div id="userWord"></div><div id="userRetry"></div></div>
     <div id="msgArea">がめんを おして スタート！
-        <div id="qrContainer">
-            <div id="qrcode"></div>
-        </div>
+        <div id="qrContainer"><div id="qrcode"></div></div>
     </div>
     <div id="choices"></div>
 
@@ -58,6 +56,10 @@
         }
 
         function handleStart() {
+            if (typeof wordsData === 'undefined') {
+                alert("エラー：words.js が見つかりません。ファイル名を確認してください。");
+                return;
+            }
             usedWords = [];
             document.getElementById('aiRetry').innerHTML = "";
             document.getElementById('userRetry').innerHTML = "";
@@ -65,7 +67,6 @@
             document.getElementById('aiWord').innerText = "";
             document.getElementById('aiWord').style.color = "#FF4500";
             document.getElementById('msgArea').innerText = "どれにする？";
-            
             const starts = wordsData.filter(w => !w.kana.endsWith("ん"));
             const first = starts[Math.floor(Math.random() * starts.length)];
             usedWords.push(first.kana);
@@ -145,6 +146,7 @@
                 }
             }, 1500);
         }
+
         function endGame(msg, loser, lastWord) {
             document.getElementById('msgArea').innerText = msg;
             speak(msg);
